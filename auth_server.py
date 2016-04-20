@@ -1,15 +1,13 @@
-from datetime import datetime
-
-from flask import Flask, jsonify
+from flask import Flask, request
 
 app = Flask(__name__)
 
 
 @app.route('/')
-def current_time_api():
-    current_time = datetime.now()
-    return jsonify({'current_time': str(current_time)})
+def auth():
+    # return 'Go away', 401
+    return 'All good', 200
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='192.168.72.19', port=8888)
+    app.run(debug=True, host='127.0.0.1', port=8888)
