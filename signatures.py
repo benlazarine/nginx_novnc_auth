@@ -1,3 +1,5 @@
+import logging
+
 from itsdangerous import URLSafeTimedSerializer, Signer
 
 
@@ -71,18 +73,22 @@ def generate_signature(signing_secret_key, signing_salt, fp_secret_key, fp_salt,
 
 
 def decode_signature(signing_secret_key, signing_salt, max_age, signature):
-    usts = URLSafeTimedSerializer(
-        signing_secret_key,
-        salt=signing_salt)
+    usts = URLSafeTimedSerializer(signing_secret_key, salt=signing_salt)
     values = usts.loads(signature, return_timestamp=True, max_age=max_age)
     return values
 
 
 def validate_fingerprints(fp_secret_key, fp_salt, client_ip_fingerprint, browser_fingerprint, client_ip, user_agent,
                           accept, accept_encoding, accept_language):
+    is_valid = True
+
     signer = Signer(fp_secret_key, fp_salt)
 
     calculated_client_ip_fingerprint = signer.get_signature(client_ip)
+
+    if calculated_client_ip_fingerprint != client_ip_fingerprint:
+        logging.warn('Client IP does not match fingerprint in signature')
+        is_valid = False
 
     calculated_browser_fingerprint = signer.get_signature(''.join([
         user_agent,
@@ -90,7 +96,8 @@ def validate_fingerprints(fp_secret_key, fp_salt, client_ip_fingerprint, browser
         accept_encoding,
         accept_language]))
 
-    if calculated_client_ip_fingerprint == client_ip_fingerprint and calculated_browser_fingerprint == browser_fingerprint:
-        return True
-    else:
-        return False
+    if calculated_browser_fingerprint != browser_fingerprint:
+        logging.warn('Browser fingerprint does not match calculated fingerprint')
+        is_valid = False
+
+    return is_valid
