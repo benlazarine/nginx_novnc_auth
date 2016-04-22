@@ -68,8 +68,12 @@ def auth():
         else:
             auth_result_code = 200
     except BadSignature as e:
+        vm_ip = None
         auth_result_code = 401
-    return vm_ip, int(auth_result_code)
+
+    headers = {'X-Target-VM-IP': vm_ip}
+
+    return (vm_ip, int(auth_result_code), headers)
 
 
 if __name__ == '__main__':
