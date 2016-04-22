@@ -13,7 +13,9 @@
 
 upstream vnc_proxy {
     #server 127.0.0.1:6080;
-    server cyverse.org;
+    #server cyverse.org;
+    # TODO: Read this from a header returned by /auth
+    server 128.196.64.26:5904;
 }
 
 upstream auth_server {
@@ -77,6 +79,9 @@ server {
 
 	location /vncws/ {
 		auth_request /auth;
+		# TODO: Set the $vm_ip variable to something (header? body?) from /auth
+        # auth_request_set vm_ip $upstream_http_SOMETHING???
+        # Then use $vm_ip in the proxy_pass below
 		proxy_pass http://vnc_proxy/;
 		proxy_http_version 1.1;
 		proxy_set_header Upgrade $http_upgrade;
