@@ -1,65 +1,78 @@
+import logging
 from urlparse import urlparse, parse_qs
 
 from flask import Flask, request
-from itsdangerous import Signer, URLSafeTimedSerializer, BadSignature
+from itsdangerous import BadSignature
+
+from signatures import decode_signature, validate_fingerprints, generate_signature
 
 app = Flask(__name__)
 app.config.from_object('default_settings')
 app.config.from_envvar('AUTH_SERVER_SETTINGS')
 
 
-def _generate_test_signature(vm_ip, web_request):
-    signer = Signer(app.config['SECRET_KEY'], app.config['SALT'])
-
-    real_client_ip = web_request.environ.get('HTTP_X_REAL_IP', '')
-    client_ip_signature = signer.get_signature(real_client_ip)
-
-    user_agent = web_request.user_agent
-    browser_fingerprint = str(user_agent)
-    browser_fingerprint_signature = signer.get_signature(browser_fingerprint)
-
-    usts = URLSafeTimedSerializer(app.config['SECRET_KEY'], app.config['SALT'])
-    sig = usts.dumps([vm_ip, client_ip_signature, browser_fingerprint_signature])
-    return sig
-
-
 @app.route('/')
 def auth():
+    # Get all our prerequisites ready.
     original_uri = request.environ.get('HTTP_X_ORIGINAL_URI', '')
+    user_agent = str(request.user_agent)
+    client_ip = request.environ.get('HTTP_X_REAL_IP', '')
+    accept = request.environ.get('HTTP_ACCEPT', '')
+    accept_encoding = request.environ.get('HTTP_ACCEPT_ENCODING', '')
+    accept_language = request.environ.get('HTTP_ACCEPT_LANGUAGE', '')
     uri_parts = urlparse(original_uri)
     query_string = uri_parts.query
     query_vars = parse_qs(query_string)
-
     signature_list = query_vars.get('sig', '')
     if isinstance(signature_list, list):
         signature = signature_list[0]
     else:
         signature = signature_list
 
+    # Check signatures
     try:
-        ### TEST START
-        # vm_ip = '128.196.64.214'
-        # test_sig = _generate_test_signature(vm_ip, request)
-        ### TEST END
-        usts = URLSafeTimedSerializer(app.config['SECRET_KEY'], app.config['SALT'])
-        sig_load_result = usts.loads(signature, max_age=app.config['MAX_AGE'])
+        sig_load_result = decode_signature(app.config['WEB_DESKTOP_SIGNING_SECRET_KEY'],
+                                           app.config['WEB_DESKTOP_SIGNING_SALT'],
+                                           app.config['MAX_AGE'],
+                                           signature)
 
-        signer = Signer(app.config['SECRET_KEY'], app.config['SALT'])
-        real_client_ip = request.environ.get('HTTP_X_REAL_IP', '')
-        client_ip_signature = signer.get_signature(real_client_ip)
-        assert client_ip_signature == sig_load_result[1]
+        (signature_values, timestamp) = sig_load_result
+        (vm_ip, client_ip_fingerprint, browser_fingerprint) = signature_values
 
-        user_agent = request.user_agent
-        browser_fingerprint = str(user_agent)
-        browser_fingerprint_signature = signer.get_signature(browser_fingerprint)
-        assert browser_fingerprint_signature == sig_load_result[2]
+        if app.debug:
+            # Generate a signature with the expected values, for testing.
+            test_signature = generate_signature(app.config['WEB_DESKTOP_SIGNING_SECRET_KEY'],
+                                                app.config['WEB_DESKTOP_SIGNING_SALT'],
+                                                app.config['WEB_DESKTOP_FP_SECRET_KEY'],
+                                                app.config['WEB_DESKTOP_FP_SALT'],
+                                                client_ip,
+                                                vm_ip,
+                                                user_agent,
+                                                accept,
+                                                accept_encoding,
+                                                accept_language)
+            logging.debug('test_signature: %s', test_signature)
 
-        auth_result_code = 200
+        is_valid = validate_fingerprints(app.config['WEB_DESKTOP_FP_SECRET_KEY'],
+                                         app.config['WEB_DESKTOP_FP_SALT'],
+                                         client_ip_fingerprint,
+                                         browser_fingerprint,
+                                         client_ip,
+                                         user_agent,
+                                         accept,
+                                         accept_encoding,
+                                         accept_language)
+
+        if not is_valid:
+            auth_result_code = 401
+        else:
+            auth_result_code = 200
     except BadSignature as e:
         auth_result_code = 401
-
-    return 'Auth result', int(auth_result_code)
+    return vm_ip, int(auth_result_code)
 
 
 if __name__ == '__main__':
+    if app.debug:
+        logging.root.setLevel(logging.DEBUG)
     app.run(debug=True, host='127.0.0.1', port=8888)
