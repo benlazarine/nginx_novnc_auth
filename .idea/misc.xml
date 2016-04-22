@@ -10,5 +10,5 @@
     <ConfirmationsSetting value="0" id="Add" />
     <ConfirmationsSetting value="0" id="Remove" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Remote Python 2.7.6 Vagrant VM at ~/dev/spikes/nginx_novnc_auth (/usr/bin/python)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Remote Python 2.7.6 (sftp://julianp@kurtz.iplantcollaborative.org:1657/opt/env/nginx_novnc_auth/bin/python)" project-jdk-type="Python SDK" />
 </project>
