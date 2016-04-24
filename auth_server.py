@@ -68,7 +68,7 @@ def auth():
         else:
             auth_result_code = 200
     except BadSignature as e:
-        vm_ip = None
+        vm_ip = ''
         auth_result_code = 401
 
     headers = {'X-Target-VM-IP': vm_ip}
