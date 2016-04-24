@@ -61,12 +61,17 @@ def generate_signature(signing_secret_key, signing_salt, fp_secret_key, fp_salt,
         salt=fp_salt)
 
     client_ip_fingerprint = signer.get_signature(client_ip)
+    logging.debug('client_ip: %s', client_ip)
+    logging.debug('client_ip_fingerprint: %s', client_ip_fingerprint)
 
-    browser_fingerprint = signer.get_signature(''.join([
+    browser_fingerprint_input = ''.join([
         user_agent,
-        accept,
         accept_encoding,
-        accept_language]))
+        accept_language])
+    logging.debug('browser_fingerprint_input: %s', browser_fingerprint_input)
+
+    browser_fingerprint = signer.get_signature(browser_fingerprint_input)
+    logging.debug('browser_fingerprint: %s', browser_fingerprint)
 
     sig = usts.dumps([vm_ip, client_ip_fingerprint, browser_fingerprint])
     return sig
@@ -84,17 +89,22 @@ def validate_fingerprints(fp_secret_key, fp_salt, client_ip_fingerprint, browser
 
     signer = Signer(fp_secret_key, fp_salt)
 
+    logging.debug('client_ip_fingerprint: %s', client_ip_fingerprint)
     calculated_client_ip_fingerprint = signer.get_signature(client_ip)
+    logging.debug('calculated_client_ip_fingerprint: %s', calculated_client_ip_fingerprint)
 
     if calculated_client_ip_fingerprint != client_ip_fingerprint:
         logging.warn('Client IP does not match fingerprint in signature')
         is_valid = False
 
-    calculated_browser_fingerprint = signer.get_signature(''.join([
+    browser_fingerprint_input = ''.join([
         user_agent,
-        accept,
         accept_encoding,
-        accept_language]))
+        accept_language])
+    logging.debug('browser_fingerprint_input: %s', browser_fingerprint_input)
+    logging.debug('browser_fingerprint: %s', browser_fingerprint)
+    calculated_browser_fingerprint = signer.get_signature(browser_fingerprint_input)
+    logging.debug('calculated_browser_fingerprint: %s', calculated_browser_fingerprint)
 
     if calculated_browser_fingerprint != browser_fingerprint:
         logging.warn('Browser fingerprint does not match calculated fingerprint')
