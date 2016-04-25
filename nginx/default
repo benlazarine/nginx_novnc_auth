@@ -67,12 +67,22 @@ server {
         # use response header, X-Target-VM-IP, to set variable
         auth_request_set $vm_ip $upstream_http_x_target_vm_ip;
         proxy_http_version 1.1;
-        proxy_pass http://$vm_ip;
+        proxy_pass http://$vm_ip:5904;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
     }
 
     location /vncws/vnc_auto.html {
+        auth_request /auth;
+        # use response header, X-Target-VM-IP, to set variable
+        auth_request_set $vm_ip $upstream_http_x_target_vm_ip;
+        auth_request_set $sig_cookie $upstream_http_x_set_sig_cookie;
+        add_header Set-Cookie $sig_cookie;
+        try_files $uri $uri/ =404;
+    }
+
+    location /vncws/vnc.html {
+        # TODO: Share the location of vnc_auto.html instead of copying.
         auth_request /auth;
         # use response header, X-Target-VM-IP, to set variable
         auth_request_set $vm_ip $upstream_http_x_target_vm_ip;

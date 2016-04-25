@@ -4,7 +4,7 @@ from itsdangerous import URLSafeTimedSerializer, Signer
 
 
 def generate_signature(signing_secret_key, signing_salt, fp_secret_key, fp_salt, client_ip, vm_ip, user_agent,
-                       accept, accept_encoding, accept_language):
+                       accept_language):
     """ Generate test signatures.
 
     Notes from @lenards:
@@ -66,7 +66,6 @@ def generate_signature(signing_secret_key, signing_salt, fp_secret_key, fp_salt,
 
     browser_fingerprint_input = ''.join([
         user_agent,
-        accept_encoding,
         accept_language])
     logging.debug('browser_fingerprint_input: %s', browser_fingerprint_input)
 
@@ -84,7 +83,7 @@ def decode_signature(signing_secret_key, signing_salt, max_age, signature):
 
 
 def validate_fingerprints(fp_secret_key, fp_salt, client_ip_fingerprint, browser_fingerprint, client_ip, user_agent,
-                          accept, accept_encoding, accept_language):
+                          accept_language):
     is_valid = True
 
     signer = Signer(fp_secret_key, fp_salt)
@@ -99,7 +98,6 @@ def validate_fingerprints(fp_secret_key, fp_salt, client_ip_fingerprint, browser
 
     browser_fingerprint_input = ''.join([
         user_agent,
-        accept_encoding,
         accept_language])
     logging.debug('browser_fingerprint_input: %s', browser_fingerprint_input)
     logging.debug('browser_fingerprint: %s', browser_fingerprint)

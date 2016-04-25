@@ -8,7 +8,7 @@ from signatures import decode_signature, validate_fingerprints, generate_signatu
 
 app = Flask(__name__)
 app.config.from_object('default_settings')
-app.config.from_envvar('AUTH_SERVER_SETTINGS')
+app.config.from_envvar('AUTH_SERVER_SETTINGS', silent=False)
 
 
 @app.route('/auth/')
@@ -21,10 +21,6 @@ def auth():
     logging.debug('user_agent: %s', user_agent)
     client_ip = request.environ.get('HTTP_X_REAL_IP', '')
     logging.debug('client_ip: %s', client_ip)
-    accept = request.environ.get('HTTP_ACCEPT', '')
-    logging.debug('accept: %s', accept)
-    accept_encoding = request.environ.get('HTTP_ACCEPT_ENCODING', '')
-    logging.debug('accept_encoding: %s', accept_encoding)
     accept_language = request.environ.get('HTTP_ACCEPT_LANGUAGE', '')
     logging.debug('accept_language: %s', accept_language)
     uri_parts = urlparse(original_uri)
@@ -39,25 +35,27 @@ def auth():
         signature = signature_list[0]
     else:
         signature = signature_list
-    logging.debug('Signature found: %s', signature_list)
+    if not signature:
+        logging.warn('No signature found in either query string or cookies.')
+    else:
+        logging.debug('Signature found: %s', signature_list)
 
+    fingerprint_is_valid = False
     # Check signatures
     try:
         if app.debug:
             # Generate a signature with the expected values, for testing.
             # We dn't have the vm_ip yet, so hard-code it. That way we can
             # pre-generate a signature which should work.
-            manual_vm_ip = '128.196.65.167:5904'
+            manual_vm_ip = '128.196.65.167'
             manual_signature = generate_signature(app.config['WEB_DESKTOP_SIGNING_SECRET_KEY'],
-                                                app.config['WEB_DESKTOP_SIGNING_SALT'],
-                                                app.config['WEB_DESKTOP_FP_SECRET_KEY'],
-                                                app.config['WEB_DESKTOP_FP_SALT'],
-                                                client_ip,
-                                                manual_vm_ip,
-                                                user_agent,
-                                                accept,
-                                                accept_encoding,
-                                                accept_language)
+                                                  app.config['WEB_DESKTOP_SIGNING_SALT'],
+                                                  app.config['WEB_DESKTOP_FP_SECRET_KEY'],
+                                                  app.config['WEB_DESKTOP_FP_SALT'],
+                                                  client_ip,
+                                                  manual_vm_ip,
+                                                  user_agent,
+                                                  accept_language)
             logging.debug('manual_signature: %s', manual_signature)
 
         sig_load_result = decode_signature(app.config['WEB_DESKTOP_SIGNING_SECRET_KEY'],
@@ -71,28 +69,24 @@ def auth():
         if app.debug:
             # Generate a signature with the expected values, for testing.
             expected_signature = generate_signature(app.config['WEB_DESKTOP_SIGNING_SECRET_KEY'],
-                                                app.config['WEB_DESKTOP_SIGNING_SALT'],
-                                                app.config['WEB_DESKTOP_FP_SECRET_KEY'],
-                                                app.config['WEB_DESKTOP_FP_SALT'],
-                                                client_ip,
-                                                vm_ip,
-                                                user_agent,
-                                                accept,
-                                                accept_encoding,
-                                                accept_language)
+                                                    app.config['WEB_DESKTOP_SIGNING_SALT'],
+                                                    app.config['WEB_DESKTOP_FP_SECRET_KEY'],
+                                                    app.config['WEB_DESKTOP_FP_SALT'],
+                                                    client_ip,
+                                                    vm_ip,
+                                                    user_agent,
+                                                    accept_language)
             logging.debug('expected_signature: %s', expected_signature)
 
-        is_valid = validate_fingerprints(app.config['WEB_DESKTOP_FP_SECRET_KEY'],
-                                         app.config['WEB_DESKTOP_FP_SALT'],
-                                         client_ip_fingerprint,
-                                         browser_fingerprint,
-                                         client_ip,
-                                         user_agent,
-                                         accept,
-                                         accept_encoding,
-                                         accept_language)
+        fingerprint_is_valid = validate_fingerprints(app.config['WEB_DESKTOP_FP_SECRET_KEY'],
+                                                     app.config['WEB_DESKTOP_FP_SALT'],
+                                                     client_ip_fingerprint,
+                                                     browser_fingerprint,
+                                                     client_ip,
+                                                     user_agent,
+                                                     accept_language)
 
-        if not is_valid:
+        if not fingerprint_is_valid:
             auth_result_code = 401
         else:
             auth_result_code = 200
@@ -100,10 +94,12 @@ def auth():
         vm_ip = ''
         auth_result_code = 401
 
-    headers = {
-        'X-Target-VM-IP': vm_ip,
-        'X-Set-Sig-Cookie': 'sig=%s' % signature
-    }
+    headers = {}
+    if vm_ip and fingerprint_is_valid:
+        headers['X-Target-VM-IP'] = vm_ip
+    if signature and fingerprint_is_valid:
+        headers['X-Set-Sig-Cookie'] = 'sig=%s' % signature
+    logging.debug('Sending back headers: %s', headers)
     return (vm_ip, int(auth_result_code), headers)
 
 
