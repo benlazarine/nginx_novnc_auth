@@ -13,6 +13,8 @@ app.config.from_envvar('AUTH_SERVER_SETTINGS', silent=False)
 
 @app.route('/auth/')
 def auth():
+    # TODO:
+    # - For websockets check that the 'Origin' header is set to http(s)://kurtz.iplantcollaborative.org or whatever.
     logging.debug('NEW AUTH REQUEST')
     # Get all our prerequisites ready.
     original_uri = request.environ.get('HTTP_X_ORIGINAL_URI', '')
@@ -47,7 +49,7 @@ def auth():
             # Generate a signature with the expected values, for testing.
             # We dn't have the vm_ip yet, so hard-code it. That way we can
             # pre-generate a signature which should work.
-            manual_vm_ip = '128.196.65.167'
+            manual_vm_ip = '128.196.65.182'
             manual_signature = generate_signature(app.config['WEB_DESKTOP_SIGNING_SECRET_KEY'],
                                                   app.config['WEB_DESKTOP_SIGNING_SALT'],
                                                   app.config['WEB_DESKTOP_FP_SECRET_KEY'],
@@ -106,4 +108,4 @@ def auth():
 if __name__ == '__main__':
     if app.debug:
         logging.root.setLevel(logging.DEBUG)
-    app.run(debug=app.debug, host='127.0.0.1', port=8888)
+    app.run(debug=app.debug, host='127.0.0.1', port=5000)

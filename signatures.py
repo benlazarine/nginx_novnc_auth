@@ -96,6 +96,8 @@ def validate_fingerprints(fp_secret_key, fp_salt, client_ip_fingerprint, browser
         logging.warn('Client IP does not match fingerprint in signature')
         is_valid = False
 
+    return is_valid  # Just ignore fingerprint for now.
+
     browser_fingerprint_input = ''.join([
         user_agent,
         accept_language])
