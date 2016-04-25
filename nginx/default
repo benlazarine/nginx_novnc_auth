@@ -44,14 +44,6 @@ server {
 
     server_name _;
 
-    location /vncws {
-        auth_request /auth;
-        # use response header, X-Target-VM-IP, to set variable
-        auth_request_set $vm_ip $upstream_http_x_target_vm_ip;
-        auth_request_set $sig_cookie $upstream_http_x_set_sig_cookie;
-        add_header Set-Cookie $sig_cookie;
-    }
-
     location / {
         # First attempt to serve request as file, then
         # as directory, then fall back to displaying a 404.
@@ -81,7 +73,7 @@ server {
     }
 
     location /vncws/ {
-        # This requires on web proxy:
+        # Required on web proxy:
         # cd /usr/share/novnc/
         # ln -s vnc_auto.html index.html
         # Unless @lenards redirects to vnc_auto.html
