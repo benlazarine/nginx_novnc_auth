@@ -29,10 +29,10 @@ def auth():
     query_string = uri_parts.query
     logging.debug('query_string: %s', query_string)
     query_vars = parse_qs(query_string)
-    signature_list = query_vars.get('sig', '')
+    signature_list = query_vars.get('token', '')
     if not signature_list:
         logging.debug('No signature in the query string, trying cookies.')
-        signature_list = request.cookies.get('sig', '')
+        signature_list = request.cookies.get('token', '')
     if isinstance(signature_list, list):
         signature = signature_list[0]
     else:
@@ -100,7 +100,7 @@ def auth():
     if vm_ip and fingerprint_is_valid:
         headers['X-Target-VM-IP'] = vm_ip
     if signature and fingerprint_is_valid:
-        headers['X-Set-Sig-Cookie'] = 'sig=%s' % signature
+        headers['X-Set-Sig-Cookie'] = 'token=%s' % signature
     logging.debug('Sending back headers: %s', headers)
     return (vm_ip, int(auth_result_code), headers)
 
