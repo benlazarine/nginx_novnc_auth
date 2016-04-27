@@ -144,3 +144,4 @@ virtualbox/
 
 # guard against heinous lenards emacs backups
 *~
+local_settings*
