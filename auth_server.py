@@ -1,4 +1,7 @@
 import logging
+import sys
+from logging.handlers import RotatingFileHandler
+
 from urlparse import urlparse, parse_qs
 
 from flask import Flask, request
@@ -15,23 +18,23 @@ app.config.from_envvar('AUTH_SERVER_SETTINGS', silent=False)
 def auth():
     # TODO:
     # - For websockets check that the 'Origin' header is set to http(s)://kurtz.iplantcollaborative.org or whatever.
-    logging.debug('NEW AUTH REQUEST')
+    app.logger.debug('NEW AUTH REQUEST')
     # Get all our prerequisites ready.
     original_uri = request.environ.get('HTTP_X_ORIGINAL_URI', '')
-    logging.debug('original_uri: %s', original_uri)
+    app.logger.debug('original_uri: %s', original_uri)
     user_agent = str(request.user_agent)
-    logging.debug('user_agent: %s', user_agent)
+    app.logger.debug('user_agent: %s', user_agent)
     client_ip = request.environ.get('HTTP_X_REAL_IP', '')
-    logging.debug('client_ip: %s', client_ip)
+    app.logger.debug('client_ip: %s', client_ip)
     accept_language = request.environ.get('HTTP_ACCEPT_LANGUAGE', '')
-    logging.debug('accept_language: %s', accept_language)
+    app.logger.debug('accept_language: %s', accept_language)
     uri_parts = urlparse(original_uri)
     query_string = uri_parts.query
-    logging.debug('query_string: %s', query_string)
+    app.logger.debug('query_string: %s', query_string)
     query_vars = parse_qs(query_string)
     signature_list = query_vars.get('token', '')
     if not signature_list:
-        logging.debug('No signature in the query string, trying cookies.')
+        app.logger.debug('No signature in the query string, trying cookies.')
         signature_list = request.cookies.get('token', '')
     if isinstance(signature_list, list):
         signature = signature_list[0]
@@ -40,7 +43,7 @@ def auth():
     if not signature:
         logging.warn('No signature found in either query string or cookies.')
     else:
-        logging.debug('Signature found: %s', signature_list)
+        app.logger.debug('Signature found: %s', signature_list)
 
     fingerprint_is_valid = False
     # Check signatures
@@ -58,7 +61,7 @@ def auth():
                                                   manual_vm_ip,
                                                   user_agent,
                                                   accept_language)
-            logging.debug('manual_signature: %s', manual_signature)
+            app.logger.debug('manual_signature: %s', manual_signature)
 
         sig_load_result = decode_signature(app.config['WEB_DESKTOP_SIGNING_SECRET_KEY'],
                                            app.config['WEB_DESKTOP_SIGNING_SALT'],
@@ -78,7 +81,7 @@ def auth():
                                                     vm_ip,
                                                     user_agent,
                                                     accept_language)
-            logging.debug('expected_signature: %s', expected_signature)
+            app.logger.debug('expected_signature: %s', expected_signature)
 
         fingerprint_is_valid = validate_fingerprints(app.config['WEB_DESKTOP_FP_SECRET_KEY'],
                                                      app.config['WEB_DESKTOP_FP_SALT'],
@@ -101,7 +104,7 @@ def auth():
         headers['X-Target-VM-IP'] = vm_ip
     if signature and fingerprint_is_valid:
         headers['X-Set-Sig-Cookie'] = 'token=%s' % signature
-    logging.debug('Sending back headers: %s', headers)
+    app.logger.debug('Sending back headers: %s', headers)
     return (vm_ip, int(auth_result_code), headers)
 
 
