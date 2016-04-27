@@ -142,4 +142,5 @@ virtualbox/
 ## trash-cli
 .Trash/
 
-
+# guard against heinous lenards emacs backups
+*~
