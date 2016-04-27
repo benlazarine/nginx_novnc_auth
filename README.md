@@ -22,6 +22,22 @@ WEB_DESKTOP_FP_SALT = '<fingerprint-salt-secret-value>'
 MAX_AGE = # (int) max age for a timed signature to be considered valid
 ```
 
+## Nginx
+
+We use a `/etc/nginx/locations` directory to specific the locations for a site. Any conf(s) defined within `<base-repo>/nginx/locations` should be symlinked into `/etc/nginx/locations`.
+
+We include this path within the symlinked `/etc/nginx/sites-enabled/site.conf`:
+
+```
+server {
+    listen  443;
+    # ...
+    # ...
+    # at the bottom
+    include locations/*.conf;
+}
+```
+
 # Authors
 - Julian Pistorius
 - Andrew Lenards
