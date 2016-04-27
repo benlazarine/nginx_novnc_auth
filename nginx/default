@@ -12,20 +12,53 @@
 ##
 
 upstream auth_server {
-    server 127.0.0.1:5000;
+    #server 127.0.0.1:5000;
+    server kurtz.iplantc.org:5000;
 }
 
 # Default server configuration
 #
+# server {
+#     listen 80;
+# #    listen [::]:80 default_server;
+#
+#     return 301 https://kurtz.iplantc.org$request_uri;
+# }
+
 server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
+
 
     # SSL configuration
     #
-    # listen 443 ssl default_server;
-    # listen [::]:443 ssl default_server;
-    #
+    listen 443;
+    #listen [::]:443 ssl default_server;
+
+    server_name kurtz.iplantc.org;
+    charset utf-8;
+
+    ssl on;
+    ssl_certificate /etc/ssl/certs/iplantc_combined.crt;
+    #ssl_certificate /etc/ssl/certs/iplantc.org.crt;
+    ssl_certificate_key /etc/ssl/private/iplantc.key;
+
+    ssl_ciphers 'AES128+EECDH:AES128+EDH';
+
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+    ssl_session_cache shared:SSL:10m;
+
+    # Cache OSCP protects against DoS attacks
+    ssl_stapling on;
+    ssl_stapling_verify on;
+    resolver 8.8.4.4 8.8.8.8 valid=300s;
+    resolver_timeout 10s;
+
+    ssl_prefer_server_ciphers on;
+    ssl_dhparam /etc/ssl/certs/dhparam.pem;
+
+    add_header Strict-Transport-Security max-age=63072000;
+    add_header X-Frame-Options DENY;
+    add_header X-Content-Type-Options nosniff;
+
     # Note: You should disable gzip for SSL traffic.
     # See: https://bugs.debian.org/773332
     #
@@ -42,17 +75,10 @@ server {
     # Add index.php to the list if you are using PHP
     index index.html index.htm index.nginx-debian.html;
 
-    server_name _;
-
-    location / {
-        # First attempt to serve request as file, then
-        # as directory, then fall back to displaying a 404.
-        try_files $uri $uri/ =404;
-    }
+    include /etc/nginx/uwsgi_params;
 
     location = /auth {
-        internal;
-        proxy_pass http://auth_server/auth/;
+        proxy_pass https://auth_server/auth/;
         proxy_pass_request_body off;
         proxy_set_header Content-Length "";
         proxy_set_header X-Original-URI $request_uri;
@@ -60,6 +86,8 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+	# Comment out when running in foreground
+	#uwsgi_pass unix:///tmp/novnc_auth.sock;
     }
 
     location /websockify {
@@ -100,6 +128,12 @@ server {
         auth_request_set $vm_ip $upstream_http_x_target_vm_ip;
         auth_request_set $sig_cookie $upstream_http_x_set_sig_cookie;
         add_header Set-Cookie $sig_cookie;
+        try_files $uri $uri/ =404;
+    }
+
+    location / {
+        # First attempt to serve request as file, then
+        # as directory, then fall back to displaying a 404.
         try_files $uri $uri/ =404;
     }
 
