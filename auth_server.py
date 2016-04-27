@@ -105,6 +105,7 @@ def auth():
         headers['X-Target-VM-IP'] = vm_ip
     if signature and fingerprint_is_valid:
         headers['X-Set-Sig-Cookie'] = 'token=%s' % signature
+        headers['X-Set-Display-Cookie'] = 'password=display'
 
     app.logger.debug('Sending back headers: %s', headers)
 
