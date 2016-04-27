@@ -7,10 +7,11 @@ from urlparse import urlparse, parse_qs
 from flask import Flask, request
 from itsdangerous import BadSignature
 
+import default_settings
 from signatures import decode_signature, validate_fingerprints, generate_signature
 
 app = Flask(__name__)
-app.config.from_object('default_settings')
+app.config.from_object(default_settings)
 app.config.from_envvar('AUTH_SERVER_SETTINGS', silent=False)
 
 
