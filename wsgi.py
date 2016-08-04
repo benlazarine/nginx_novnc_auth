@@ -20,25 +20,26 @@ os.environ["AUTH_SERVER_SETTINGS"] = os.path.join(root_dir, "local_settings.py")
 from auth_server import app
 
 from logging.handlers import RotatingFileHandler
+from logging import Formatter
 
 log_file = os.path.join(root_dir, 'logs/novnc_auth.log')
 
 handler = RotatingFileHandler(log_file, maxBytes=10485760, backupCount=2)
-fmt = logging.Formatter(FORMAT,datefmt='%Y-%m-%d %H:%M:%S')
+fmt = Formatter(
+        "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
 handler.setFormatter(fmt)
 
-app.debug = False
+if 'DEBUG' in app.config:
+    app.debug = app.config['DEBUG']
 
 if app.debug:
-    logging.root.setLevel(logging.DEBUG)
     handler.setLevel(logging.DEBUG)
 else:
     handler.setLevel(logging.ERROR)
 
 app.logger.addHandler(handler)
 
-app.logger.debug('Starting ...%s '% log_file)
-app.logger.debug(app.__dict__)
+app.logger.debug('Starting ...%s ' % log_file)
 
 application = app
 
