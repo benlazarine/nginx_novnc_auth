@@ -1,14 +1,16 @@
 import logging
 import sys
-from logging.handlers import RotatingFileHandler
 
+from logging.handlers import RotatingFileHandler
 from urlparse import urlparse, parse_qs
 
 from flask import Flask, request
 from itsdangerous import BadSignature
 
 import default_settings
+
 from signatures import decode_signature, validate_fingerprints, generate_signature
+
 
 app = Flask(__name__)
 app.config.from_object(default_settings)
@@ -17,17 +19,7 @@ app.config['PROPAGATE_EXCEPTIONS'] = True
 
 @app.route('/auth/')
 def auth():
-    # TODO:
-    # - For websockets check that the 'Origin' header is set to http(s)://kurtz.iplantcollaborative.org or whatever.
     app.logger.debug('NEW AUTH REQUEST')
-
-
-    from pprint import pprint
-    app.logger.info("Flask configuration:\n %s \n\n" % app.config)
-    logging.warn(pprint(request.environ))
-    logging.warn(app.logger)
-    logging.warn("--------------------------------")
-    logging.warn(request.cookies)
 
     # Get all our prerequisites ready.
     original_uri = request.environ.get('ORIGINAL_URI', '')
@@ -47,7 +39,6 @@ def auth():
     app.logger.debug('query_string: %s', query_string)
 
     if not signature_list:
-        # might need to move this to request.environ.get('HTTP_COOKIE')
         app.logger.debug('No signature in the query string, trying cookies.')
         signature_list = request.cookies.get('token', '')
     if isinstance(signature_list, list):
