@@ -1,3 +1,14 @@
+"""
+WSGI entry point for nginx_novnc_auth transparent proxy
+
+This module contains the Flask app exposes as a WSGI callable.
+It has been convention to refer to this _callable_ as  `application`
+but could be configured to another name (e.g. `app`) using the
+`callable` attribute in the [uwsgi] section of the ini file:
+
+See novnc_auth.uwsgi.ini within this repository.
+"""
+
 import os
 import sys
 import logging
