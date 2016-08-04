@@ -89,25 +89,3 @@ def auth():
 
     return (vm_ip, int(auth_result_code), headers)
 
-
-if __name__ == '__main__':
-    handler = RotatingFileHandler('/opt/nginx_novnc_auth/logs/novnc_auth.log',
-                                  maxBytes=10485760, backupCount=2)
-    print "App Path: %s" % sys.path
-    if app.debug:
-        logging.root.setLevel(logging.DEBUG)
-        handler.setLevel(logging.DEBUG)
-    else:
-        handler.setLevel(logging.ERROR)
-
-    app.logger.addHandler(handler)
-    ssl_crt = "/etc/letsencrypt/live/kurtz.cyverse.org/cert.pem"
-    ssl_key = "/etc/letsencrypt/live/kurtz.cyverse.org/privkey.pem"
-    #context = ('/etc/ssl/certs/iplantc.org.crt', '/etc/ssl/private/iplantc.key')
-    context = (ssl_crt, ssl_key)
-    #app.run(debug=app.debug, host='127.0.0.1', port=5000)
-    # We will try this first, otherwise back to top?
-    app.logger.debug('Before app run call ...')
-    # THIS WORKS!
-    # app.run(debug=app.debug, host='kurtz.iplantc.org', ssl_context=context, threaded=True, port=5000)  # I made some changes.. Note: ssl_context, and host changed
-    app.run(debug=app.debug, host='kurtz.cyverse.org', ssl_context=context, threaded=True, port=5000)  # I made some changes.. Note: ssl_context, and host changed
