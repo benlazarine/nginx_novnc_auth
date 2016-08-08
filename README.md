@@ -1,10 +1,10 @@
-# Nginx NoNVC Auth
+# Nginx NoVNC Auth
 
 Provides a subrequest server for verifying the authenticity of transparent proxy requests
 
 # Dependencies & Setup
 
-- nginx
+- nginx ([--with-http_auth_request_module](http://nginx.org/en/docs/http/ngx_http_auth_request_module.html))
 - uwsgi
 - python-uwsgi-plugin
 - _python packages in requirements.txt_
@@ -37,6 +37,10 @@ server {
     include locations/*.conf;
 }
 ```
+
+# License
+
+See [LICENSE.txt](LICENSE.txt)
 
 # Authors
 - Julian Pistorius
