@@ -1,11 +1,20 @@
+"""
+WSGI entry point for nginx_novnc_auth transparent proxy
+
+This module contains the Flask app exposes as a WSGI callable.
+It has been convention to refer to this _callable_ as  `application`
+but could be configured to another name (e.g. `app`) using the
+`callable` attribute in the [uwsgi] section of the ini file:
+
+See novnc_auth.uwsgi.ini within this repository.
+"""
+
 import os
 import sys
 import logging
-from logging.handlers import RotatingFileHandler
 
-from auth_server import app
 
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "."))
 
 if os.environ.has_key("VIRTUAL_ENV_PATH"):
   virtual_env_path = os.environ["VIRTUAL_ENV_PATH"]
@@ -15,31 +24,33 @@ else:
 sys.path.insert(0, virtual_env_path)
 sys.path.insert(1, root_dir)
 
-def run_main():
-    log_file = os.path.join(root_dir, 'nginx_novnc_auth/logs/novnc_auth.log')
-    handler = RotatingFileHandler(
-        log_file,
-        maxBytes=10485760, backupCount=2)
-
-    app.debug = False
-    if app.debug:
-        logging.root.setLevel(logging.DEBUG)
-        handler.setLevel(logging.DEBUG)
-    else:
-        handler.setLevel(logging.ERROR)
-    app.logger.addHandler(handler)
-
-    app.logger.debug('Starting ...%s '% log_file)
-    app.logger.debug(app.__dict__)
-
-    context = ('/etc/ssl/certs/iplantc.org.crt', '/etc/ssl/private/iplantc.key')
-    #app.run(debug=app.debug, port=5000)
-    app.run(debug=app.debug, host='kurtz.iplantc.org', ssl_context=context, threaded=True, port=5000, use_reloader=False)
+os.environ["AUTH_SERVER_SETTINGS"] = os.path.join(root_dir, "local_settings.py")
 
 
-if __name__ == "__main__":
-    run_main()
-#NOTE: __name__ == 'nginx_novnc_auth.wsgi' when executed by service
-# if 'wsgi' in __name__:
-#     run_main()
+# Ensure the settings are set prior to `import` of Flask app
+from auth_server import app
+
+from logging.handlers import RotatingFileHandler
+from logging import Formatter
+
+log_file = os.path.join(root_dir, 'logs/novnc_auth.log')
+
+handler = RotatingFileHandler(log_file, maxBytes=10485760, backupCount=2)
+fmt = Formatter(
+        "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
+handler.setFormatter(fmt)
+
+if 'DEBUG' in app.config:
+    app.debug = app.config['DEBUG']
+
+if app.debug:
+    handler.setLevel(logging.DEBUG)
+else:
+    handler.setLevel(logging.ERROR)
+
+app.logger.addHandler(handler)
+
+app.logger.debug('Starting ...%s ' % log_file)
+
+application = app
 
