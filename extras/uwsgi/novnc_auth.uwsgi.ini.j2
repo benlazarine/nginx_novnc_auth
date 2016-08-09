@@ -1,0 +1,17 @@
+[uwsgi]
+chdir = {{ NGINX_NOVNC_AUTH_PATH }}
+virtualenv = {{ NGINX_NOVNC_AUTH_VENV }}
+callable = application
+module = wsgi
+master = true
+socket = /tmp/novnc_auth.sock
+thunder-lock = true
+enable-threads = true
+processes = 24
+uid = {{ UWSGI_USER }}
+gid = {{ UWSGI_GROUP }}
+chmod-socket = 776
+vacuum = true
+max-requests = 10000
+daemonize = {{ UWSGI_LOG_PATH }}
+log-format = %(addr) - %(user) [%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"
