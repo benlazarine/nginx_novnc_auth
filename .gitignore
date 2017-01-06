@@ -144,3 +144,8 @@ virtualbox/
 
 # guard against heinous lenards emacs backups
 *~
+
+local_settings*
+
+# Just ignore all PyCharm stuff
+.idea
