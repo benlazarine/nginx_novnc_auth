@@ -9,7 +9,7 @@ from itsdangerous import BadSignature
 
 import default_settings
 
-from signatures import decode_signature, generate_signature
+from signatures import decode_signature
 
 
 app = Flask(__name__)
@@ -28,11 +28,12 @@ def auth():
     accept_language = request.environ.get('HTTP_ACCEPT_LANGUAGE', '')
 
     uri_parts = urlparse(original_uri)
+    app.logger.debug('original_uri: %s', original_uri)
     query_string = uri_parts.query
+    app.logger.debug('Query: %s', query_string)
     query_vars = parse_qs(query_string)
     signature_list = query_vars.get('token', '')
 
-    app.logger.debug('original_uri: %s', original_uri)
     app.logger.debug('user_agent: %s', user_agent)
     app.logger.debug('client_ip: %s', client_ip)
     app.logger.debug('accept_language: %s', accept_language)
@@ -45,10 +46,11 @@ def auth():
         signature = signature_list[0]
     else:
         signature = signature_list
+
     if not signature:
         app.logger.warn('No signature found in either query string or cookies.')
     else:
-        app.logger.debug('Signature found: %s', signature_list)
+        app.logger.debug('Signature found: %s', signature)
 
     fingerprint_is_valid = False
     # Check signatures
@@ -57,7 +59,8 @@ def auth():
                                            app.config['WEB_DESKTOP_SIGNING_SALT'],
                                            app.config['MAX_AGE'],
                                            signature)
-
+        fingerprint_is_valid = True  # Based on timestamp, otherwise failure occurs in sig_load_result
+        # app.logger.debug("Load result:%s" % (sig_load_result,))
         (signature_values, timestamp) = sig_load_result
         vm_ip = signature_values[0]
         auth_result_code = 200

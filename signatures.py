@@ -3,6 +3,7 @@ import logging
 from itsdangerous import URLSafeTimedSerializer, Signer
 
 
+#FIXME: This method needs updated in a future PR to generate proper signatures.
 def generate_signature(signing_secret_key, signing_salt, fp_secret_key, fp_salt, client_ip, vm_ip, user_agent,
                        accept_language):
     """ Generate test signatures.
