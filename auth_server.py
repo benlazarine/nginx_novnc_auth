@@ -9,7 +9,7 @@ from itsdangerous import BadSignature
 
 import default_settings
 
-from signatures import decode_signature, validate_fingerprints, generate_signature
+from signatures import decode_signature, generate_signature
 
 
 app = Flask(__name__)
@@ -59,20 +59,8 @@ def auth():
                                            signature)
 
         (signature_values, timestamp) = sig_load_result
-        (vm_ip, client_ip_fingerprint, browser_fingerprint) = signature_values
-
-        fingerprint_is_valid = validate_fingerprints(app.config['WEB_DESKTOP_FP_SECRET_KEY'],
-                                                     app.config['WEB_DESKTOP_FP_SALT'],
-                                                     client_ip_fingerprint,
-                                                     browser_fingerprint,
-                                                     client_ip,
-                                                     user_agent,
-                                                     accept_language)
-
-        if not fingerprint_is_valid:
-            auth_result_code = 401
-        else:
-            auth_result_code = 200
+        vm_ip = signature_values[0]
+        auth_result_code = 200
     except BadSignature as e:
         vm_ip = ''
         auth_result_code = 401
