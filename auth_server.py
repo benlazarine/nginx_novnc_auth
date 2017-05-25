@@ -4,7 +4,7 @@ import sys
 from logging.handlers import RotatingFileHandler
 from urlparse import urlparse, parse_qs
 
-from flask import Flask, request
+from flask import Flask, request, render_template
 from itsdangerous import BadSignature
 
 import default_settings
@@ -16,6 +16,14 @@ app = Flask(__name__)
 app.config.from_object(default_settings)
 app.config.from_envvar('AUTH_SERVER_SETTINGS', silent=False)
 app.config['PROPAGATE_EXCEPTIONS'] = True
+
+@app.route('/error/')
+@app.route('/error/<error_code>')
+def error_handler():
+    app.logger.debug('NEW ERROR REQUEST')
+    app.logger.debug("error code = %s" % error_code)
+    return render_template('error_page.html', error_code=error_code)
+    
 
 @app.route('/auth/')
 def auth():
@@ -64,6 +72,9 @@ def auth():
     except BadSignature as e:
         vm_ip = ''
         auth_result_code = 401
+
+    if auth_result_code != 200:
+        return render_template('error_page.html', error_code=auth_result_code)
 
     headers = {}
     if vm_ip and fingerprint_is_valid:

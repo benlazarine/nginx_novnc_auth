@@ -1,0 +1,7 @@
+<!doctype html>
+<title>Hello Error Page</title>
+{% if error_code %}
+  <h1>We received a {{error_code}} </h1>
+{% else %}
+  <h1>No errors found</h1>
+{% endif %}
