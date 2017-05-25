@@ -17,20 +17,22 @@ app.config.from_object(default_settings)
 app.config.from_envvar('AUTH_SERVER_SETTINGS', silent=False)
 app.config['PROPAGATE_EXCEPTIONS'] = True
 
-@app.route('/error/')
-@app.route('/error/<error_code>')
-def error_handler():
-    app.logger.debug('NEW ERROR REQUEST')
-    app.logger.debug("error code = %s" % error_code)
-    return render_template('error_page.html', error_code=error_code)
-    
+# @app.route('/error/')
+# @app.route('/error/<error_code>')
+# def error_handler():
+#     app.logger.debug('NEW ERROR REQUEST')
+#     app.logger.debug("error code = %s" % error_code)
+#     return render_template('error_page.html', error_code=error_code)
+
 
 @app.route('/auth/')
 def auth():
     app.logger.debug('NEW AUTH REQUEST')
+    #app.logger.debug('request: %s', request.__dict__)
 
     # Get all our prerequisites ready.
     original_uri = request.environ.get('ORIGINAL_URI', '')
+    app.logger.debug('original_uri: %s', original_uri)
     user_agent = str(request.user_agent)
     client_ip = request.environ.get('REMOTE_ADDR', '')
     accept_language = request.environ.get('HTTP_ACCEPT_LANGUAGE', '')
@@ -40,7 +42,6 @@ def auth():
     query_vars = parse_qs(query_string)
     signature_list = query_vars.get('token', '')
 
-    app.logger.debug('original_uri: %s', original_uri)
     app.logger.debug('user_agent: %s', user_agent)
     app.logger.debug('client_ip: %s', client_ip)
     app.logger.debug('accept_language: %s', accept_language)
@@ -61,6 +62,8 @@ def auth():
     fingerprint_is_valid = False
     # Check signatures
     try:
+        if not signature:
+            raise ValueError("A signature is required")
         sig_load_result = decode_signature(app.config['WEB_DESKTOP_SIGNING_SECRET_KEY'],
                                            app.config['WEB_DESKTOP_SIGNING_SALT'],
                                            app.config['MAX_AGE'],
@@ -69,12 +72,11 @@ def auth():
         (signature_values, timestamp) = sig_load_result
         vm_ip = signature_values[0]
         auth_result_code = 200
-    except BadSignature as e:
+    except (ValueError, BadSignature) as exc:
+        app.logger.warn('Error during signature decode: %s' % exc)
         vm_ip = ''
         auth_result_code = 401
-
-    if auth_result_code != 200:
-        return render_template('error_page.html', error_code=auth_result_code)
+        # return render_template('error_page.html', error_code=auth_result_code)
 
     headers = {}
     if vm_ip and fingerprint_is_valid:
@@ -84,7 +86,7 @@ def auth():
         headers['X-Set-Display-Cookie'] = 'password=display'
 
     app.logger.debug('Sending back headers: %s', headers)
+    app.logger.debug('VM IP: %s' % vm_ip)
     app.logger.debug('auth_request result code: %s', auth_result_code)
 
     return (vm_ip, int(auth_result_code), headers)
-
