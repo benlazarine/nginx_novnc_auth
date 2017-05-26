@@ -59,7 +59,6 @@ def auth():
     else:
         app.logger.debug('Signature found: %s', signature_list)
 
-    fingerprint_is_valid = False
     # Check signatures
     try:
         if not signature:
@@ -72,21 +71,18 @@ def auth():
         (signature_values, timestamp) = sig_load_result
         vm_ip = signature_values[0]
         auth_result_code = 200
+        headers = {
+            'X-Target-VM-IP': vm_ip,
+            'X-Set-Sig-Cookie': 'token=%s' % signature,
+            'X-Set-Display-Cookie': 'password=display'
+        }
+        app.logger.debug('Sending back headers: %s', headers)
+        app.logger.debug('VM IP: %s' % vm_ip)
+        app.logger.debug('auth_request result code: %s', auth_result_code)
+        return vm_ip, auth_result_code, headers
     except (ValueError, BadSignature) as exc:
         app.logger.warn('Error during signature decode: %s' % exc)
         vm_ip = ''
         auth_result_code = 401
-        # return render_template('error_page.html', error_code=auth_result_code)
-
-    headers = {}
-    if vm_ip and fingerprint_is_valid:
-        headers['X-Target-VM-IP'] = vm_ip
-    if signature and fingerprint_is_valid:
-        headers['X-Set-Sig-Cookie'] = 'token=%s' % signature
-        headers['X-Set-Display-Cookie'] = 'password=display'
-
-    app.logger.debug('Sending back headers: %s', headers)
-    app.logger.debug('VM IP: %s' % vm_ip)
-    app.logger.debug('auth_request result code: %s', auth_result_code)
-
-    return (vm_ip, int(auth_result_code), headers)
+        headers = {}
+        return vm_ip, auth_result_code, headers
